@@ -47,7 +47,7 @@
 //! # Builder API
 //!
 //! Templates can also be formatted incrementally with
-//! [`FormatBuilder`](crate::FormatBuilder), adding one argument per call:
+//! [`FormatBuilder`], adding one argument per call:
 //!
 //! ```
 //! use rtformat::Format;
