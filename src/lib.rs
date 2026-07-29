@@ -6,6 +6,7 @@
 //! - Sign / radix prefix / zero padding: `{:+}` `{:#x}` `{:010}`
 //! - Width and precision: `{:.3}` `{:1$}` `{:.1$}` (`n$` takes the width/precision from argument `n`)
 //! - `{{` / `}}` escapes
+//! - Format into any `core::fmt::Write` sink; precompiled templates via [`Template`]
 //!
 //! Not supported: named arguments `{name}`, pointers `{:p}`, hexadecimal debug `{x?}` / `{X?}`.
 //!
@@ -58,6 +59,24 @@
 //! assert_eq!(s, "1 + 2 = 3");
 //! ```
 //!
+//! # Precompiled templates
+//!
+//! The one-shot APIs parse the template on every call. [`Template`] parses
+//! once, formats many times, and can also write into any
+//! [`core::fmt::Write`] sink (appending, not overwriting):
+//!
+//! ```
+//! use rtformat::Template;
+//!
+//! let tpl = Template::parse("{} + {} = {2}")?;
+//! assert_eq!(tpl.format(&(1, 2, 3)), "1 + 2 = 3");
+//!
+//! let mut log = String::from("log: ");
+//! tpl.try_write_to(&mut log, &(1, 2, 3))?;
+//! assert_eq!(log, "log: 1 + 2 = 3");
+//! # Ok::<(), rtformat::FormatError>(())
+//! ```
+//!
 //! All commonly used items are also available through [`prelude`]:
 //!
 //! ```
@@ -80,6 +99,7 @@ mod error;
 mod format;
 mod param;
 mod spec;
+mod template;
 
 #[doc(hidden)]
 pub mod __private;
@@ -99,6 +119,7 @@ pub use builder::{FormatArgRef, FormatBuilder};
 pub use error::FormatError;
 pub use format::Format;
 pub use param::FormatParam;
+pub use template::Template;
 
 #[doc(inline)]
 pub use rtformat_derive::FormatArg;

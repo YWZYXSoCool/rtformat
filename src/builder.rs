@@ -3,14 +3,17 @@ use alloc::vec::Vec;
 use core::fmt;
 
 use crate::arg::{FormatArg, FormatType};
-use crate::engine::format_with_args;
 use crate::error::FormatError;
+use crate::template::Template;
 
 /// Incrementally formats a template string by adding one argument at a time.
 ///
 /// Created through [`Format::builder`](crate::Format::builder); finish with
 /// [`build`](FormatBuilder::build) (panicking) or
-/// [`try_build`](FormatBuilder::try_build) (fallible).
+/// [`try_build`](FormatBuilder::try_build) (fallible), or with
+/// [`build_to`](FormatBuilder::build_to) /
+/// [`try_build_to`](FormatBuilder::try_build_to) to write into an existing
+/// [`core::fmt::Write`] sink.
 ///
 /// # Examples
 ///
@@ -66,12 +69,49 @@ impl<'template, 'arg> FormatBuilder<'template, 'arg> {
     /// Returns the same errors as
     /// [`Format::try_format`](crate::Format::try_format).
     pub fn try_build(self) -> Result<String, FormatError> {
+        let mut out = String::with_capacity(self.template.len());
+        self.try_build_to(&mut out)?;
+        Ok(out)
+    }
+
+    /// Consumes the builder and formats the template into `sink`,
+    /// appending to its current contents.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the template or the arguments are invalid, or the sink
+    /// rejects a write. Use [`try_build_to`](FormatBuilder::try_build_to)
+    /// for a fallible version.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rtformat::Format;
+    ///
+    /// let mut buf = String::from("sum: ");
+    /// "{} + {}".builder().arg(&1).arg(&2).build_to(&mut buf);
+    /// assert_eq!(buf, "sum: 1 + 2");
+    /// ```
+    pub fn build_to(self, sink: &mut dyn fmt::Write) {
+        self.try_build_to(sink)
+            .unwrap_or_else(|error| panic!("format failed: {error}"))
+    }
+
+    /// Consumes the builder and formats the template into `sink`,
+    /// appending to its current contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as
+    /// [`Format::try_format`](crate::Format::try_format), plus
+    /// [`FormatError::WriteFailed`] if the sink rejects a write.
+    pub fn try_build_to(self, sink: &mut dyn fmt::Write) -> Result<(), FormatError> {
         let args: Vec<&dyn FormatArg> = self
             .slots
             .iter()
             .map(|slot| slot as &dyn FormatArg)
             .collect();
-        format_with_args(self.template, &args)
+        Template::parse(self.template)?.render(&args, sink)
     }
 }
 

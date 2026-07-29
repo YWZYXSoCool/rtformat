@@ -2,6 +2,7 @@ use core::fmt;
 
 /// Error returned by [`Format::try_format`](crate::Format::try_format).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum FormatError {
     /// A placeholder index is beyond the number of supplied arguments.
     InsufficientParameters,
@@ -14,6 +15,9 @@ pub enum FormatError {
     /// The argument referenced by `{:1$}` / `{:.1$}` as a width/precision is
     /// not an unsigned integer.
     ExpectedUsize,
+    /// The output sink rejected a write (`fmt::Write::write_str` returned
+    /// `Err`). Writing into a `String` never fails.
+    WriteFailed,
 }
 
 impl fmt::Display for FormatError {
@@ -27,6 +31,7 @@ impl fmt::Display for FormatError {
             FormatError::ExpectedUsize => {
                 write!(f, "Width/precision argument must be an unsigned integer")
             }
+            FormatError::WriteFailed => write!(f, "Failed to write to the output sink"),
         }
     }
 }

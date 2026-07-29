@@ -21,5 +21,5 @@
 //! ```
 
 pub use crate::{
-    rformat, Format, FormatArg, FormatBuilder, FormatError, FormatParam, FormatType,
+    rformat, Format, FormatArg, FormatBuilder, FormatError, FormatParam, FormatType, Template,
 };

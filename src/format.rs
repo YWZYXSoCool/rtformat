@@ -1,16 +1,18 @@
 use alloc::string::String;
-use alloc::vec::Vec;
+use core::fmt;
 
-use crate::arg::FormatArg;
 use crate::builder::FormatBuilder;
-use crate::engine::format_with_args;
 use crate::error::FormatError;
-use crate::param::FormatParam;
+use crate::param::{collect_args, FormatParam};
+use crate::template::Template;
 
 /// A template string that can be formatted with runtime arguments.
 ///
 /// Implemented for `str`; `String`, `Box<str>`, etc. get it through deref.
 /// See the [crate documentation](crate) for the supported placeholder syntax.
+///
+/// These one-shot methods parse the template on every call; for a template
+/// used repeatedly, parse it once with [`Template::parse`](crate::Template::parse).
 pub trait Format {
     /// Formats `param` into a new `String`.
     ///
@@ -40,6 +42,41 @@ pub trait Format {
         self.try_format(param).ok()
     }
 
+    /// Formats `param` into `sink`, appending to its current contents.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the template or the arguments are invalid, or the sink
+    /// rejects a write. Use [`try_write_to`](Format::try_write_to) for a
+    /// fallible version.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rtformat::Format;
+    ///
+    /// let mut log = String::from("log: ");
+    /// "user {} ({})".write_to(&mut log, &("ada", 7));
+    /// assert_eq!(log, "log: user ada (7)");
+    /// ```
+    fn write_to(&self, sink: &mut dyn fmt::Write, param: &dyn FormatParam) {
+        self.try_write_to(sink, param)
+            .unwrap_or_else(|error| panic!("format failed: {error}"))
+    }
+
+    /// Formats `param` into `sink`, appending to its current contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`try_format`](Format::try_format), plus
+    /// [`FormatError::WriteFailed`] if the sink rejects a write. Writing
+    /// into a `String` never fails.
+    fn try_write_to(
+        &self,
+        sink: &mut dyn fmt::Write,
+        param: &dyn FormatParam,
+    ) -> Result<(), FormatError>;
+
     /// Starts a [`FormatBuilder`] for adding arguments one at a time.
     ///
     /// # Examples
@@ -56,9 +93,18 @@ pub trait Format {
 /// get it through deref.
 impl Format for str {
     fn try_format(&self, param: &dyn FormatParam) -> Result<String, FormatError> {
-        let mut args: Vec<&dyn FormatArg> = Vec::new();
-        param.visit(&mut |arg| args.push(arg));
-        format_with_args(self, &args)
+        let mut out = String::with_capacity(self.len());
+        self.try_write_to(&mut out, param)?;
+        Ok(out)
+    }
+
+    fn try_write_to(
+        &self,
+        sink: &mut dyn fmt::Write,
+        param: &dyn FormatParam,
+    ) -> Result<(), FormatError> {
+        let args = collect_args(param);
+        Template::parse(self)?.render(&args, sink)
     }
 
     fn builder<'t>(&'t self) -> FormatBuilder<'t, 'static> {

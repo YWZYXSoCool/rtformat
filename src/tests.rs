@@ -1,4 +1,5 @@
 use super::*;
+use alloc::string::String;
 use core::fmt;
 
 #[test]
@@ -172,4 +173,123 @@ fn errors() {
     assert_eq!("{:x}".try_format(&("str",)), Err(FormatError::UnsupportedFormatType));
     assert_eq!("{:p}".try_format(&(1,)), Err(FormatError::UnsupportedFormatType));
     assert_eq!("{:1$}".try_format(&("ab", "cd")), Err(FormatError::ExpectedUsize));
+}
+
+#[test]
+fn template_basic_and_reuse() {
+    let tpl = Template::parse("{} + {} = {2}").unwrap();
+    assert_eq!(tpl.format(&(1, 2, 3)), "1 + 2 = 3");
+    // The same parsed template works with different arguments:
+    assert_eq!(tpl.format(&("a", "b", "ab")), "a + b = ab");
+}
+
+#[test]
+fn template_arity() {
+    assert_eq!(Template::parse("no placeholders").unwrap().arity(), 0);
+    assert_eq!(Template::parse("{} {}").unwrap().arity(), 2);
+    assert_eq!(Template::parse("{0} {0} {1}").unwrap().arity(), 2);
+    assert_eq!(Template::parse("{} {5}").unwrap().arity(), 6);
+    // `n$` width/precision references count too:
+    assert_eq!(Template::parse("{:1$}").unwrap().arity(), 2);
+    assert_eq!(Template::parse("{{}}").unwrap().arity(), 0);
+}
+
+macro_rules! assert_equiv {
+    ($fmt:literal $(, $arg:expr)* $(,)?) => {
+        assert_eq!(
+            Template::parse($fmt).unwrap().try_format(&($($arg,)*)),
+            $fmt.try_format(&($($arg,)*)),
+            "template/eager mismatch for {:?}",
+            $fmt,
+        );
+    };
+}
+
+#[test]
+fn template_matches_eager() {
+    assert_equiv!("Hello {} {}", "World", "Rust");
+    assert_equiv!("no placeholders");
+    assert_equiv!("{{}} {{{}}}", 1);
+    assert_equiv!("}}");
+    assert_equiv!("{1} {0} {0}", "a", "b");
+    assert_equiv!("{} {1} {}", "a", "b");
+    assert_equiv!("{:#010x} {:X} {:#o} {:#b}", 255, 255, 8, 5);
+    assert_equiv!("{:05} {:<05} {:08.4}", 42, 42, 42);
+    assert_equiv!("{:+} {:+}", 42, -7);
+    assert_equiv!("{:.2} {:.2e}", 1.234567, 1.234567);
+    assert_equiv!("{:+} {:05}", f64::NAN, f64::NAN);
+    assert_equiv!("{:1$} {0:>1$}", "ab", 5);
+    assert_equiv!("{:01$}", 42, 6);
+    assert_equiv!("{:_^7} {:8.3}", "ab", "hello");
+    assert_equiv!("{:5} {:>5}", "你好", "ok");
+    assert_equiv!("{:?} {:#?}", "s", "s");
+}
+
+#[test]
+fn template_parse_errors() {
+    assert_eq!(Template::parse("{"), Err(FormatError::InvalidFormatString));
+    assert_eq!(Template::parse("}"), Err(FormatError::InvalidFormatString));
+    assert_eq!(Template::parse("{name}"), Err(FormatError::InvalidFormatString));
+    assert_eq!(Template::parse("{:q}"), Err(FormatError::UnsupportedFormatType));
+    // Argument errors surface at format time, not parse time:
+    let tpl = Template::parse("{} {}").unwrap();
+    assert_eq!(
+        tpl.try_format(&("only",)),
+        Err(FormatError::InsufficientParameters)
+    );
+}
+
+/// A sink that rejects writes once its byte budget is exhausted.
+struct Limited(usize);
+
+impl fmt::Write for Limited {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        if s.len() > self.0 {
+            return Err(fmt::Error);
+        }
+        self.0 -= s.len();
+        Ok(())
+    }
+}
+
+#[test]
+fn write_to_appends() {
+    let mut buf = String::from("log: ");
+    "user {} ({})".try_write_to(&mut buf, &("ada", 7)).unwrap();
+    assert_eq!(buf, "log: user ada (7)");
+
+    let tpl = Template::parse("x{}").unwrap();
+    let mut buf = String::from("[");
+    tpl.try_write_to(&mut buf, &("hi",)).unwrap();
+    assert_eq!(buf, "[xhi");
+}
+
+#[test]
+fn write_to_reports_sink_errors() {
+    // "x{}" with ("hi",) writes "x" (1 byte), then "hi" (2 bytes).
+    let tpl = Template::parse("x{}").unwrap();
+    let mut sink = Limited(1);
+    assert_eq!(
+        tpl.try_write_to(&mut sink, &("hi",)),
+        Err(FormatError::WriteFailed)
+    );
+    let mut sink = Limited(3);
+    assert_eq!(tpl.try_write_to(&mut sink, &("hi",)), Ok(()));
+    assert_eq!("hello {}".try_write_to(&mut Limited(0), &("x",)), Err(FormatError::WriteFailed));
+}
+
+#[test]
+fn builder_write_to() {
+    let mut buf = String::new();
+    "{} + {}".builder().arg(&1).arg(&2).build_to(&mut buf);
+    assert_eq!(buf, "1 + 2");
+
+    let mut buf = String::from("eq: ");
+    "{} = {0}".builder().arg(&7).try_build_to(&mut buf).unwrap();
+    assert_eq!(buf, "eq: 7 = 7");
+
+    assert_eq!(
+        "{}".builder().arg(&1).try_build_to(&mut Limited(0)),
+        Err(FormatError::WriteFailed)
+    );
 }

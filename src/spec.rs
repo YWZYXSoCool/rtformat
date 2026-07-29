@@ -5,7 +5,7 @@ use crate::arg::{FormatArg, FormatType};
 use crate::error::FormatError;
 
 /// Alignment of the rendered value within its width.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Align {
     Left,
     Center,
@@ -14,14 +14,14 @@ pub(crate) enum Align {
 
 /// Width/precision: either a literal, or an `n$` argument reference that has
 /// not yet been resolved at parse time.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Count {
     Lit(usize),
     Param(usize),
 }
 
 /// The parsed spec, before `n$` counts have been resolved against the arguments.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct RawSpec {
     fill: char,
     align: Option<Align>,
@@ -54,6 +54,18 @@ impl Spec {
 }
 
 impl RawSpec {
+    /// The largest argument index referenced by an `n$` width/precision, if
+    /// any. Used at parse time to compute a template's argument arity.
+    pub(crate) fn max_param_ref(&self) -> Option<usize> {
+        [self.width, self.precision]
+            .into_iter()
+            .filter_map(|count| match count {
+                Some(Count::Param(i)) => Some(i),
+                _ => None,
+            })
+            .max()
+    }
+
     /// Resolves `n$` width/precision counts against the actual arguments.
     ///
     /// # Errors

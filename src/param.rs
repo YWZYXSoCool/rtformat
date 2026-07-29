@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::arg::FormatArg;
 
 /// All arguments of one `format` call, handed to the visitor one by one in
@@ -8,6 +10,13 @@ use crate::arg::FormatArg;
 /// referenced by multiple placeholders with different specs).
 pub trait FormatParam {
     fn visit<'fmt>(&'fmt self, visitor: &mut dyn FnMut(&'fmt dyn FormatArg));
+}
+
+/// Collects the arguments of one call in declaration order.
+pub(crate) fn collect_args(param: &dyn FormatParam) -> Vec<&dyn FormatArg> {
+    let mut args = Vec::new();
+    param.visit(&mut |arg| args.push(arg));
+    args
 }
 
 impl FormatParam for () {
