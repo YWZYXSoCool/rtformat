@@ -21,7 +21,10 @@ fn types() {
         rformat!("{:#x} {:X} {:#o} {:#b}", 255, 255, 8, 5),
         "0xff FF 0o10 0b101"
     );
-    assert_eq!(rformat!("{:e} {:E}", 12345.678, 12345.678), "1.2345678e4 1.2345678E4");
+    assert_eq!(
+        rformat!("{:e} {:E}", 12345.678, 12345.678),
+        "1.2345678e4 1.2345678E4"
+    );
     assert_eq!(rformat!("{:#x}", -1), "0xffffffff");
 }
 
@@ -40,7 +43,10 @@ impl fmt::Display for Point {
 #[test]
 fn custom_arg_and_pretty_debug() {
     assert_eq!(rformat!("{}", Point { x: 1, y: 2 }), "(1, 2)");
-    assert_eq!(rformat!("{:?}", Point { x: 1, y: 2 }), "Point { x: 1, y: 2 }");
+    assert_eq!(
+        rformat!("{:?}", Point { x: 1, y: 2 }),
+        "Point { x: 1, y: 2 }"
+    );
     let out = rformat!("{:#?}", Point { x: 1, y: 2 });
     assert!(out.contains('\n'));
     assert_eq!(
@@ -168,11 +174,26 @@ fn errors() {
     );
     assert_eq!("{".try_format(&()), Err(FormatError::InvalidFormatString));
     assert_eq!("}".try_format(&()), Err(FormatError::InvalidFormatString));
-    assert_eq!("{name}".try_format(&("v",)), Err(FormatError::InvalidFormatString));
-    assert_eq!("{:0$}".try_format(&(42, 5)), Err(FormatError::InvalidFormatString));
-    assert_eq!("{:x}".try_format(&("str",)), Err(FormatError::UnsupportedFormatType));
-    assert_eq!("{:p}".try_format(&(1,)), Err(FormatError::UnsupportedFormatType));
-    assert_eq!("{:1$}".try_format(&("ab", "cd")), Err(FormatError::ExpectedUsize));
+    assert_eq!(
+        "{name}".try_format(&("v",)),
+        Err(FormatError::InvalidFormatString)
+    );
+    assert_eq!(
+        "{:0$}".try_format(&(42, 5)),
+        Err(FormatError::InvalidFormatString)
+    );
+    assert_eq!(
+        "{:x}".try_format(&("str",)),
+        Err(FormatError::UnsupportedFormatType)
+    );
+    assert_eq!(
+        "{:p}".try_format(&(1,)),
+        Err(FormatError::UnsupportedFormatType)
+    );
+    assert_eq!(
+        "{:1$}".try_format(&("ab", "cd")),
+        Err(FormatError::ExpectedUsize)
+    );
 }
 
 #[test]
@@ -229,8 +250,14 @@ fn template_matches_eager() {
 fn template_parse_errors() {
     assert_eq!(Template::parse("{"), Err(FormatError::InvalidFormatString));
     assert_eq!(Template::parse("}"), Err(FormatError::InvalidFormatString));
-    assert_eq!(Template::parse("{name}"), Err(FormatError::InvalidFormatString));
-    assert_eq!(Template::parse("{:q}"), Err(FormatError::UnsupportedFormatType));
+    assert_eq!(
+        Template::parse("{name}"),
+        Err(FormatError::InvalidFormatString)
+    );
+    assert_eq!(
+        Template::parse("{:q}"),
+        Err(FormatError::UnsupportedFormatType)
+    );
     // Argument errors surface at format time, not parse time:
     let tpl = Template::parse("{} {}").unwrap();
     assert_eq!(
@@ -275,7 +302,10 @@ fn write_to_reports_sink_errors() {
     );
     let mut sink = Limited(3);
     assert_eq!(tpl.try_write_to(&mut sink, &("hi",)), Ok(()));
-    assert_eq!("hello {}".try_write_to(&mut Limited(0), &("x",)), Err(FormatError::WriteFailed));
+    assert_eq!(
+        "hello {}".try_write_to(&mut Limited(0), &("x",)),
+        Err(FormatError::WriteFailed)
+    );
 }
 
 #[test]

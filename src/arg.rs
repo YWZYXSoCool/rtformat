@@ -132,7 +132,9 @@ macro_rules! impl_format_arg_int {
         }
     )+};
 }
-impl_format_arg_int!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
+impl_format_arg_int!(
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize
+);
 
 macro_rules! impl_format_arg_float {
     ($($t:ty),+ $(,)?) => {$(

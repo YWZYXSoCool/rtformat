@@ -5,8 +5,8 @@ use core::fmt;
 use crate::arg::FormatArg;
 use crate::engine::render_arg;
 use crate::error::FormatError;
-use crate::param::{collect_args, FormatParam};
-use crate::spec::{parse_placeholder, RawSpec};
+use crate::param::{FormatParam, collect_args};
+use crate::spec::{RawSpec, parse_placeholder};
 
 /// One piece of a parsed [`Template`].
 #[derive(Clone, Debug, PartialEq)]
@@ -204,7 +204,9 @@ impl<'t> Template<'t> {
                 Segment::Literal(text) => note_sink(w.write_str(text))?,
                 Segment::Escaped(c) => note_sink(w.write_char(*c))?,
                 Segment::Placeholder { index, spec } => {
-                    let arg = args.get(*index).ok_or(FormatError::InsufficientParameters)?;
+                    let arg = args
+                        .get(*index)
+                        .ok_or(FormatError::InsufficientParameters)?;
                     render_arg(arg, spec.resolve(args)?, w, &mut scratch)?;
                 }
             }

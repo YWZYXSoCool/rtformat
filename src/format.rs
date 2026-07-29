@@ -3,7 +3,7 @@ use core::fmt;
 
 use crate::builder::FormatBuilder;
 use crate::error::FormatError;
-use crate::param::{collect_args, FormatParam};
+use crate::param::{FormatParam, collect_args};
 use crate::template::Template;
 
 /// A template string that can be formatted with runtime arguments.
