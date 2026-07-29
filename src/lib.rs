@@ -9,6 +9,8 @@
 //!
 //! Not supported: named arguments `{name}`, pointers `{:p}`, hexadecimal debug `{x?}` / `{X?}`.
 //!
+//! This crate is `#![no_std]`-compatible and requires `alloc`.
+//!
 //! # Custom argument types
 //!
 //! Types implementing `Display` and/or `Debug` can derive [`FormatArg`].
@@ -64,6 +66,13 @@
 //! assert_eq!(rformat!("Hello {}!", "world"), "Hello world!");
 //! ```
 
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(test)]
+extern crate std;
+
 mod arg;
 mod builder;
 mod engine;
@@ -76,6 +85,9 @@ mod spec;
 pub mod __private;
 
 pub mod prelude;
+
+#[cfg(test)]
+mod std_compat;
 
 #[cfg(test)]
 mod tests;

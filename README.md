@@ -22,6 +22,7 @@ you already know.
 - `{{` / `}}` escapes
 - Custom argument types via `#[derive(FormatArg)]`
 - Fallible formatting (`try_format`) and an incremental builder API
+- `#![no_std]`-compatible (requires `alloc`)
 
 Not supported: named arguments `{name}`, pointers `{:p}`, hexadecimal debug
 `{x?}` / `{X?}`.
@@ -105,6 +106,17 @@ use rtformat::prelude::*;
 
 assert_eq!(rformat!("Hello {}!", "world"), "Hello world!");
 ```
+
+## Notes
+
+- The template is parsed on every call and rendering allocates, so
+  `rtformat` is intended for runtime templates — config files, i18n
+  strings, database-stored patterns — not hot inner loops.
+- `rformat!` / `Format::format` take tuples of up to 16 arguments; for
+  more, or for argument counts only known at runtime, use the
+  [builder API](#builder-api).
+- Output matches `std::fmt` semantics for the supported features; this
+  is guarded by differential tests against `std::format!`.
 
 ## Workspace layout
 

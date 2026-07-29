@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::string::String;
 use core::fmt;
 
 /// The trailing type character of a `{...}` placeholder spec.
@@ -63,9 +65,9 @@ pub trait FormatArg {
     /// Renders the **bare** value for the given format `ty`.
     ///
     /// Only floating-point precision (digits after the point) is applied here.
-    /// Integer precision (minimum-width zero padding), signs, `#` radix
-    /// prefixes, width, and alignment are all applied by the engine afterwards
-    /// — do not apply them here.
+    /// Signs, `#` radix prefixes, width, and alignment are all applied by the
+    /// engine afterwards — do not apply them here. Precision is ignored for
+    /// integers (same as std).
     ///
     /// When `pretty` is `true` and `ty` is [`FormatType::Debug`], render in
     /// the `{:#?}` style.
@@ -89,8 +91,8 @@ pub trait FormatArg {
         false
     }
 
-    /// Whether the value is an integer: precision means minimum-width zero
-    /// padding, and all radix types are supported.
+    /// Whether the value is an integer: all radix types are supported, and
+    /// precision is ignored (same as std).
     fn is_integer(&self) -> bool {
         false
     }

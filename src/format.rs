@@ -1,3 +1,6 @@
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::arg::FormatArg;
 use crate::builder::FormatBuilder;
 use crate::engine::format_with_args;
@@ -16,7 +19,8 @@ pub trait Format {
     /// Panics if the template or the arguments are invalid. Use
     /// [`try_format`](Format::try_format) for a fallible version.
     fn format(&self, param: &dyn FormatParam) -> String {
-        self.try_format(param).expect("Insufficient parameters")
+        self.try_format(param)
+            .unwrap_or_else(|error| panic!("format failed: {error}"))
     }
 
     /// Formats `param` into a new `String`.

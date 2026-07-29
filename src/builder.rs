@@ -1,3 +1,5 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt;
 
 use crate::arg::{FormatArg, FormatType};
@@ -53,7 +55,8 @@ impl<'template, 'arg> FormatBuilder<'template, 'arg> {
     /// Panics if the template or the arguments are invalid. Use
     /// [`try_build`](FormatBuilder::try_build) for a fallible version.
     pub fn build(self) -> String {
-        self.try_build().expect("Insufficient parameters")
+        self.try_build()
+            .unwrap_or_else(|error| panic!("format failed: {error}"))
     }
 
     /// Consumes the builder and formats the template.

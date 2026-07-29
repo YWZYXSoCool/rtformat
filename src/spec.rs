@@ -1,3 +1,6 @@
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::arg::{FormatArg, FormatType};
 use crate::error::FormatError;
 
@@ -155,12 +158,12 @@ fn parse_spec(s: &str) -> Result<RawSpec, FormatError> {
         if let Some(a) = align_of(c) {
             spec.align = Some(a);
             i += 1;
-        } else if let Some(&c2) = chars.get(i + 1) {
-            if let Some(a) = align_of(c2) {
-                spec.fill = c;
-                spec.align = Some(a);
-                i += 2;
-            }
+        } else if let Some(&c2) = chars.get(i + 1)
+            && let Some(a) = align_of(c2)
+        {
+            spec.fill = c;
+            spec.align = Some(a);
+            i += 2;
         }
     }
 

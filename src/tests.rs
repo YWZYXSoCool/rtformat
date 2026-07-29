@@ -107,23 +107,33 @@ fn sign_and_zero() {
     assert_eq!(rformat!("{:+05}", 42), "+0042");
     assert_eq!(rformat!("{:#010x}", 255), "0x000000ff");
     assert_eq!(rformat!("{:05x}", 255), "000ff");
-    assert_eq!(rformat!("{:08.4}", 42), "    0042");
+    assert_eq!(rformat!("{:08.4}", 42), "00000042");
+    // the `0` flag overrides fill/align for numerics, like std
+    assert_eq!(rformat!("{:<05}", 42), "00042");
+    assert_eq!(rformat!("{:_<05}", 42), "00042");
+    assert_eq!(rformat!("{:<06}", -42), "-00042");
+    // ...but is ignored for non-numerics, like std
+    assert_eq!(rformat!("{:05}", "ab"), "ab   ");
+    assert_eq!(rformat!("{:05}", true), "true ");
+    // std never attaches `+` to NaN
+    assert_eq!(rformat!("{:+}", f64::NAN), "NaN");
+    assert_eq!(rformat!("{:+05}", f64::NAN), "00NaN");
 }
 
 #[test]
 fn precision() {
-    assert_eq!(rformat!("{:.2}", 3.14159), "3.14");
-    assert_eq!(rformat!("{:.2e}", 3.14159), "3.14e0");
+    assert_eq!(rformat!("{:.2}", 1.234567), "1.23");
+    assert_eq!(rformat!("{:.2e}", 1.234567), "1.23e0");
     assert_eq!(rformat!("{:.3}", "abcdef"), "abc");
-    assert_eq!(rformat!("{:.5}", 42), "00042");
+    assert_eq!(rformat!("{:.5}", 42), "42"); // precision is ignored for integers, like std
 }
 
 #[test]
 fn dynamic_width_precision() {
     assert_eq!(rformat!("{:1$}", "ab", 5), "ab   ");
     assert_eq!(rformat!("{0:>1$}", "ab", 5), "   ab");
-    assert_eq!(rformat!("{:.1$}", 3.14159, 2), "3.14");
-    assert_eq!(rformat!("{1:.0$}", 2, 3.14159), "3.14");
+    assert_eq!(rformat!("{:.1$}", 1.234567, 2), "1.23");
+    assert_eq!(rformat!("{1:.0$}", 2, 1.234567), "1.23");
 }
 
 #[test]

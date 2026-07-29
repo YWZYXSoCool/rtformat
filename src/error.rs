@@ -31,4 +31,4 @@ impl fmt::Display for FormatError {
     }
 }
 
-impl std::error::Error for FormatError {}
+impl core::error::Error for FormatError {}

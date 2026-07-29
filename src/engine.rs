@@ -1,3 +1,5 @@
+use alloc::borrow::ToOwned;
+use alloc::string::String;
 use core::fmt;
 use core::fmt::Write as _;
 
@@ -20,11 +22,11 @@ impl fmt::Display for Core<'_> {
     }
 }
 
-/// The `#` radix prefix for each integer format type.
+/// The `#` radix prefix for each integer format type. std always uses a
+/// lowercase `0x` prefix, even for `{:X}` (only the digits are uppercased).
 fn radix_prefix(ty: FormatType) -> &'static str {
     match ty {
-        FormatType::LowerHex => "0x",
-        FormatType::UpperHex => "0X",
+        FormatType::LowerHex | FormatType::UpperHex => "0x",
         FormatType::Octal => "0o",
         FormatType::Binary => "0b",
         _ => "",
@@ -42,10 +44,10 @@ fn render_arg(arg: &dyn FormatArg, spec: Spec, out: &mut String) -> Result<(), F
     write!(payload, "{}", Core { arg, spec }).map_err(|_| FormatError::UnsupportedFormatType)?;
 
     if !arg.is_numeric() {
-        if let Some(p) = spec.precision {
-            if payload.chars().count() > p {
-                payload = payload.chars().take(p).collect();
-            }
+        if let Some(p) = spec.precision
+            && payload.chars().count() > p
+        {
+            payload = payload.chars().take(p).collect();
         }
         pad_width(arg, spec, payload, out);
         return Ok(());
@@ -53,22 +55,14 @@ fn render_arg(arg: &dyn FormatArg, spec: Spec, out: &mut String) -> Result<(), F
 
     let (sign, mut digits) = match payload.strip_prefix('-') {
         Some(rest) => ("-", rest.to_owned()),
-        None => {
-            if spec.sign_plus {
-                ("+", payload)
-            } else {
-                ("", payload)
-            }
-        }
+        // std never attaches `+` to NaN; the float impls render it as
+        // exactly "NaN".
+        None if spec.sign_plus && payload != "NaN" => ("+", payload),
+        None => ("", payload),
     };
 
-    if arg.is_integer() {
-        if let Some(p) = spec.precision {
-            if digits.len() < p {
-                digits = "0".repeat(p - digits.len()) + &digits;
-            }
-        }
-    }
+    // Precision is ignored for integers, same as std: `{:8.4}` on `42`
+    // renders as `"      42"`, not `"    0042"`.
 
     let prefix = if spec.alternate {
         radix_prefix(spec.ty)
@@ -76,11 +70,12 @@ fn render_arg(arg: &dyn FormatArg, spec: Spec, out: &mut String) -> Result<(), F
         ""
     };
 
-    let zero_fill = spec.zero
-        && spec.align.is_none()
-        && !(arg.is_integer() && spec.precision.is_some());
-
-    if zero_fill {
+    // std semantics: when the `0` flag is set, numerics are always
+    // sign-aware zero-filled — overriding any fill/align — and integer
+    // precision has already set the minimum digit count above.
+    // Non-numerics never reach this point (the `0` flag is ignored for
+    // them, same as std).
+    if spec.zero {
         if let Some(width) = spec.width {
             let cur = sign.len() + prefix.len() + digits.len();
             if cur < width {
