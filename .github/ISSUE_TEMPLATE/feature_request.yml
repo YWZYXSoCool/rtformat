@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a new capability for rtformat.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: >-
+        Describe the use case. Note that rtformat's scope is runtime
+        formatting with `std::fmt`-compatible syntax; features that diverge
+        from `std::fmt` may be out of scope.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Sketch the API or syntax you have in mind, if any.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or other libraries you looked at.
+    validations:
+      required: false

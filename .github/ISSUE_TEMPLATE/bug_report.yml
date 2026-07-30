@@ -1,0 +1,54 @@
+name: Bug report
+description: Something is broken, or output diverges from `std::fmt`.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >-
+        A small, self-contained snippet we can paste into a test. If the output
+        differs from `std::format!`, show both.
+      render: rust
+      placeholder: |
+        use rtformat::rformat;
+
+        // rtformat says "...", but std::format! says "..."
+        assert_eq!(rformat!("{:05}", 42), format!("{:05}", 42));
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: rtformat version
+      description: Output of `cargo tree -p rtformat`.
+      placeholder: "0.1.3"
+    validations:
+      required: true
+  - type: input
+    id: toolchain
+    attributes:
+      label: Rust toolchain
+      description: Output of `rustc --version`.
+      placeholder: "rustc 1.88.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      multiple: true
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - Other / no_std target
+    validations:
+      required: false
