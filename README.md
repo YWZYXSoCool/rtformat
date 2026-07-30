@@ -3,6 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/rtformat.svg)](https://crates.io/crates/rtformat)
 [![Docs.rs](https://docs.rs/rtformat/badge.svg)](https://docs.rs/rtformat)
 [![License](https://img.shields.io/crates/l/rtformat.svg)](#license)
+[![CI](https://github.com/YWZYXSoCool/rtformat/actions/workflows/ci.yml/badge.svg)](https://github.com/YWZYXSoCool/rtformat/actions/workflows/ci.yml)
 
 Runtime string formatting for Rust, with `std::fmt`-compatible placeholder syntax.
 
@@ -73,6 +74,16 @@ use rtformat::Format;
 
 let s = "{} + {} = {2}".builder().arg(&1).arg(&2).arg(&3).build();
 assert_eq!(s, "1 + 2 = 3");
+```
+
+To add several same-typed arguments at once, use `args` with any
+`IntoIterator`:
+
+```rust
+use rtformat::Format;
+
+let s = "{} {} {}".builder().args(["a", "b", "c"]).build();
+assert_eq!(s, "a b c");
 ```
 
 ### Precompiled templates

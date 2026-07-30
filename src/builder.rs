@@ -51,6 +51,35 @@ impl<'template, 'arg> FormatBuilder<'template, 'arg> {
         self
     }
 
+    /// Appends multiple positional arguments from an iterator.
+    ///
+    /// A convenience for repeated [`arg`](FormatBuilder::arg) calls;
+    /// arguments are indexed in iteration order. Because iterators are
+    /// homogeneous, every item must share one concrete type — to mix
+    /// types, chain [`arg`](FormatBuilder::arg) calls instead.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rtformat::Format;
+    ///
+    /// let s = "{} {} {}".builder().args(["a", "b", "c"]).build();
+    /// assert_eq!(s, "a b c");
+    ///
+    /// // Any `IntoIterator` works, e.g. a `Vec` of values:
+    /// let values = vec![1, 2, 3];
+    /// let s = "{} + {} = {2}".builder().args(values.iter()).build();
+    /// assert_eq!(s, "1 + 2 = 3");
+    /// ```
+    pub fn args<I>(mut self, args: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: FormatArgRef<'arg>,
+    {
+        self.slots.extend(args.into_iter().map(|a| a.into_slot()));
+        self
+    }
+
     /// Consumes the builder and formats the template.
     ///
     /// # Panics

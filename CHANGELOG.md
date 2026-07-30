@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `FormatBuilder::args`, which appends multiple positional arguments from
+  any `IntoIterator` in one call — a shortcut for repeated `.arg(...)`
+  when the values share one type.
+
 ## [0.1.3] - 2026-07-29
 
 ### Added
