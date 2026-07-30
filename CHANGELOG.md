@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-30
+
 ### Added
 
 - `FormatBuilder::args`, which appends multiple positional arguments from
@@ -87,7 +89,8 @@ alignment and fill, sign/`#`/zero flags, width and precision including
 `n$` references, `{{`/`}}` escapes, `#[derive(FormatArg)]`, fallible
 formatting (`try_format`), and a builder API.
 
-[Unreleased]: https://github.com/YWZYXSoCool/rtformat/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/YWZYXSoCool/rtformat/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/YWZYXSoCool/rtformat/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/YWZYXSoCool/rtformat/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/YWZYXSoCool/rtformat/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/YWZYXSoCool/rtformat/compare/a205b52...v0.1.1
