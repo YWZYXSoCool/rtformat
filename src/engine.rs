@@ -38,11 +38,40 @@ fn note_write(result: fmt::Result) -> Result<(), FormatError> {
 }
 
 /// Writes `fill` repeated `n` times to the sink, without allocating.
+///
+/// Copies of `fill` are packed into a stack buffer and written in chunks, so
+/// a wide pad costs a few `write_str` calls rather than one per character.
 fn write_fill(w: &mut dyn fmt::Write, fill: char, n: usize) -> Result<(), FormatError> {
-    let mut buf = [0u8; 4];
-    let piece = fill.encode_utf8(&mut buf);
-    for _ in 0..n {
-        note_write(w.write_str(piece))?;
+    const CAP: usize = 256;
+    let mut buf = [0u8; CAP];
+    let mut char_buf = [0u8; 4];
+    let piece = fill.encode_utf8(&mut char_buf).as_bytes();
+    let plen = piece.len();
+    let per_chunk = CAP / plen;
+
+    let mut remaining = n;
+
+    // Full chunks: only when there are enough fills to need them, lay down
+    // `per_chunk` copies once and reuse that buffer for every chunk write.
+    if remaining >= per_chunk {
+        for i in 0..per_chunk {
+            buf[i * plen..(i + 1) * plen].copy_from_slice(piece);
+        }
+        let full = core::str::from_utf8(&buf[..per_chunk * plen]).expect("whole copies of a char");
+        while remaining >= per_chunk {
+            note_write(w.write_str(full))?;
+            remaining -= per_chunk;
+        }
+    }
+
+    // Tail (or the whole thing, when `n < per_chunk`): fill only the copies
+    // still needed, so small pads cost O(n) rather than O(CAP) setup.
+    if remaining > 0 {
+        for i in 0..remaining {
+            buf[i * plen..(i + 1) * plen].copy_from_slice(piece);
+        }
+        let rest = core::str::from_utf8(&buf[..remaining * plen]).expect("whole copies of a char");
+        note_write(w.write_str(rest))?;
     }
     Ok(())
 }
@@ -112,6 +141,10 @@ pub(crate) fn render_arg(
         // spec's own fill/align participate in padding.
         if let Some(p) = spec.precision {
             truncate_chars(scratch, p);
+        }
+        // Without a width there is nothing to pad, so skip the char count.
+        if spec.width.is_none() {
+            return note_write(w.write_str(scratch));
         }
         let total = scratch.chars().count();
         return write_padded(w, spec, Align::Left, total, |w| {

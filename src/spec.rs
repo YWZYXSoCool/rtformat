@@ -1,6 +1,3 @@
-use alloc::string::String;
-use alloc::vec::Vec;
-
 use crate::arg::{FormatArg, FormatType};
 use crate::error::FormatError;
 
@@ -144,7 +141,7 @@ fn parse_usize(s: &str) -> Option<usize> {
 /// [`FormatError::UnsupportedFormatType`] for unknown or unsupported type
 /// characters (e.g. `p`, `x?`).
 fn parse_spec(s: &str) -> Result<RawSpec, FormatError> {
-    let chars: Vec<char> = s.chars().collect();
+    let bytes = s.as_bytes();
     let mut i = 0;
     let mut spec = RawSpec {
         fill: ' ',
@@ -166,46 +163,50 @@ fn parse_spec(s: &str) -> Result<RawSpec, FormatError> {
         }
     }
 
-    if let Some(&c) = chars.get(i) {
+    // `[fill]align` prefix: the fill character may be multibyte, so this is
+    // the only part scanned at char granularity. Everything after it is ASCII
+    // and is indexed by byte, avoiding a `Vec<char>` allocation.
+    let mut chars = s.char_indices();
+    if let Some((_, c)) = chars.next() {
         if let Some(a) = align_of(c) {
             spec.align = Some(a);
-            i += 1;
-        } else if let Some(&c2) = chars.get(i + 1)
+            i = c.len_utf8();
+        } else if let Some((idx, c2)) = chars.next()
             && let Some(a) = align_of(c2)
         {
             spec.fill = c;
             spec.align = Some(a);
-            i += 2;
+            i = idx + c2.len_utf8();
         }
     }
 
-    match chars.get(i) {
-        Some('+') => {
+    match bytes.get(i) {
+        Some(b'+') => {
             spec.sign_plus = true;
             i += 1;
         }
-        Some('-') => i += 1,
+        Some(b'-') => i += 1,
         _ => {}
     }
 
-    if chars.get(i) == Some(&'#') {
+    if bytes.get(i) == Some(&b'#') {
         spec.alternate = true;
         i += 1;
     }
 
-    if chars.get(i) == Some(&'0') {
+    if bytes.get(i) == Some(&b'0') {
         spec.zero = true;
         i += 1;
     }
 
-    if let Some((count, consumed)) = parse_count(&chars[i..])? {
+    if let Some((count, consumed)) = parse_count(&bytes[i..])? {
         spec.width = Some(count);
         i += consumed;
     }
 
-    if chars.get(i) == Some(&'.') {
+    if bytes.get(i) == Some(&b'.') {
         i += 1;
-        match parse_count(&chars[i..])? {
+        match parse_count(&bytes[i..])? {
             Some((count, consumed)) => {
                 spec.precision = Some(count);
                 i += consumed;
@@ -214,11 +215,11 @@ fn parse_spec(s: &str) -> Result<RawSpec, FormatError> {
         }
     }
 
-    let ty: String = chars[i..].iter().collect();
-    if ty.contains('$') {
+    let rest = &s[i..];
+    if rest.contains('$') {
         return Err(FormatError::InvalidFormatString);
     }
-    spec.ty = match ty.as_str() {
+    spec.ty = match rest {
         "" => FormatType::Display,
         "?" => FormatType::Debug,
         "x" => FormatType::LowerHex,
@@ -240,25 +241,25 @@ fn parse_spec(s: &str) -> Result<RawSpec, FormatError> {
 ///
 /// Returns [`FormatError::InvalidFormatString`] if the number overflows
 /// `usize`.
-fn parse_count(chars: &[char]) -> Result<Option<(Count, usize)>, FormatError> {
-    if !chars.first().is_some_and(|c| c.is_ascii_digit()) {
+fn parse_count(bytes: &[u8]) -> Result<Option<(Count, usize)>, FormatError> {
+    if !bytes.first().is_some_and(|b| b.is_ascii_digit()) {
         return Ok(None);
     }
     let mut n = 0usize;
     let mut i = 0;
-    while let Some(&c) = chars.get(i) {
-        match c.to_digit(10) {
-            Some(d) => {
+    while let Some(&b) = bytes.get(i) {
+        match b {
+            b'0'..=b'9' => {
                 n = n
                     .checked_mul(10)
-                    .and_then(|v| v.checked_add(d as usize))
+                    .and_then(|v| v.checked_add((b - b'0') as usize))
                     .ok_or(FormatError::InvalidFormatString)?;
                 i += 1;
             }
-            None => break,
+            _ => break,
         }
     }
-    if chars.get(i) == Some(&'$') {
+    if bytes.get(i) == Some(&b'$') {
         Ok(Some((Count::Param(n), i + 1)))
     } else {
         Ok(Some((Count::Lit(n), i)))

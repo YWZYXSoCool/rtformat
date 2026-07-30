@@ -24,7 +24,7 @@ impl FormatParam for () {
 }
 
 macro_rules! impl_format_param {
-   ($($idx:tt $T:ident),+ $(,)?) => {
+    ($($idx:tt $T:ident),+ $(,)?) => {
         impl<$($T: FormatArg),+> FormatParam for ($($T,)+) {
             fn visit<'fmt>(&'fmt self, visit: &mut dyn FnMut(&'fmt dyn FormatArg)) {
                 $(visit(&self.$idx);)+

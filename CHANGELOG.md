@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   any `IntoIterator` in one call — a shortcut for repeated `.arg(...)`
   when the values share one type.
 
+### Changed
+
+- Faster parsing and rendering: padding is written in batched chunks
+  instead of one sink call per fill character, the non-numeric render path
+  skips a redundant character count when no width is set, and spec parsing
+  no longer allocates a `Vec<char>` and a `String` per placeholder. Output
+  is unchanged (guarded by the differential tests).
+- Added Criterion benchmarks (`cargo bench`) covering the one-shot and
+  template-reuse paths, so future changes are checked for regressions.
+
 ## [0.1.3] - 2026-07-29
 
 ### Added
